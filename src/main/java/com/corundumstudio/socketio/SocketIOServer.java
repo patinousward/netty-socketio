@@ -61,6 +61,7 @@ public class SocketIOServer implements ClientListeners {
         this.configuration = configuration;
         this.configCopy = new Configuration(configuration);
         namespacesHub = new NamespacesHub(configCopy);
+        //添加默认的命名空间
         mainNamespace = addNamespace(Namespace.DEFAULT_NAME);
     }
 
@@ -113,9 +114,12 @@ public class SocketIOServer implements ClientListeners {
     }
 
     /**
-     * Start server
+     * Start server 核心方法
      */
     public void start() {
+        //syncUninterruptibly 之方法注释：
+        //Waits for this future until it is done, and rethrows the cause of the failure if this future failed.
+        //startAsync  开启异步
         startAsync().syncUninterruptibly();
     }
 
@@ -125,16 +129,21 @@ public class SocketIOServer implements ClientListeners {
      * @return void
      */
     public Future<Void> startAsync() {
+        //storeFactory 这里默认的是 内存中存储
         log.info("Session store / pubsub factory used: {}", configCopy.getStoreFactory());
+        //初始化groups，bossgroups 和 workersgroup
         initGroups();
-
+        //pipelineFactory（） 是ChannelInitializer 的子类
+        //start 主要是创建handler 和 adapter，并赋值在pipelineFactory 中
         pipelineFactory.start(configCopy, namespacesHub);
 
         Class<? extends ServerChannel> channelClass = NioServerSocketChannel.class;
         if (configCopy.isUseLinuxNativeEpoll()) {
+            //epoll模式
             channelClass = EpollServerSocketChannel.class;
         }
-
+        // ----------- 核心方法  ----------- 初始化server
+        //new 一个server对象
         ServerBootstrap b = new ServerBootstrap();
         b.group(bossGroup, workerGroup)
         .channel(channelClass)
@@ -145,7 +154,8 @@ public class SocketIOServer implements ClientListeners {
         if (configCopy.getHostname() != null) {
             addr = new InetSocketAddress(configCopy.getHostname(), configCopy.getPort());
         }
-
+        //这里的listener 只是看下bind是否成功
+        //bind 返回ChannelFuture
         return b.bind(addr).addListener(new FutureListener<Void>() {
             @Override
             public void operationComplete(Future<Void> future) throws Exception {
@@ -176,11 +186,14 @@ public class SocketIOServer implements ClientListeners {
     }
 
     protected void initGroups() {
+        //默认值false
         if (configCopy.isUseLinuxNativeEpoll()) {
             bossGroup = new EpollEventLoopGroup(configCopy.getBossThreads());
             workerGroup = new EpollEventLoopGroup(configCopy.getWorkerThreads());
         } else {
+            //bossThreads 默认0
             bossGroup = new NioEventLoopGroup(configCopy.getBossThreads());
+            //works的也默认0
             workerGroup = new NioEventLoopGroup(configCopy.getWorkerThreads());
         }
     }

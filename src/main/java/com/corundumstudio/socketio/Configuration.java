@@ -29,7 +29,7 @@ import com.corundumstudio.socketio.store.StoreFactory;
 import javax.net.ssl.KeyManagerFactory;
 
 public class Configuration {
-
+    //默认的异常监听器，只是做了异常的catch，和日志的打印，也可以set自定义的异常监听器
     private ExceptionListener exceptionListener = new DefaultExceptionListener();
 
     private String context = "/socket.io";

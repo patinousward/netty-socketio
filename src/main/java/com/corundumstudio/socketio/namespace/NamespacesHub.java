@@ -28,7 +28,7 @@ import com.corundumstudio.socketio.SocketIONamespace;
 import com.corundumstudio.socketio.misc.CompositeIterable;
 
 public class NamespacesHub {
-
+    //缓存，key是命名空间的名称
     private final ConcurrentMap<String, SocketIONamespace> namespaces = PlatformDependent.newConcurrentHashMap();
     private final Configuration configuration;
 
@@ -39,6 +39,7 @@ public class NamespacesHub {
     public Namespace create(String name) {
         Namespace namespace = (Namespace) namespaces.get(name);
         if (namespace == null) {
+            //Namespace 是 SocketIONamespace 的子类
             namespace = new Namespace(name, configuration);
             Namespace oldNamespace = (Namespace) namespaces.putIfAbsent(name, namespace);
             if (oldNamespace != null) {

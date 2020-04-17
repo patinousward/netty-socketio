@@ -101,6 +101,7 @@ public class Namespace implements SocketIONamespace {
             }
         }
         entry.addListener(listener);
+        //jsonSupport 主要是消息的json序列化和反序列化
         jsonSupport.addEventMapping(name, eventName, eventClass);
     }
     

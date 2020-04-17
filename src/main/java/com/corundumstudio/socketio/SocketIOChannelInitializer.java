@@ -101,18 +101,20 @@ public class SocketIOChannelInitializer extends ChannelInitializer<Channel> impl
 
     public void start(Configuration configuration, NamespacesHub namespacesHub) {
         this.configuration = configuration;
-
+        //初始化ackManager  应该是作为单例存在的
         ackManager = new AckManager(scheduler);
 
         JsonSupport jsonSupport = configuration.getJsonSupport();
+        //encode 和decode 通过json实现
         PacketEncoder encoder = new PacketEncoder(configuration, jsonSupport);
         PacketDecoder decoder = new PacketDecoder(jsonSupport, ackManager);
-
+        //连接地址，默认/socket.io/进行连接
         String connectPath = configuration.getContext() + "/";
 
         boolean isSsl = configuration.getKeyStore() != null;
         if (isSsl) {
             try {
+                // TODO: 2020/4/17 暂时不看
                 sslContext = createSSLContext(configuration);
             } catch (Exception e) {
                 throw new IllegalStateException(e);
@@ -120,22 +122,26 @@ public class SocketIOChannelInitializer extends ChannelInitializer<Channel> impl
         }
 
         StoreFactory factory = configuration.getStoreFactory();
+        //AuthorizeHandler 是 ChannelInboundHandlerAdapter 的子类
         authorizeHandler = new AuthorizeHandler(connectPath, scheduler, configuration, namespacesHub, factory, this, ackManager, clientsBox);
         factory.init(namespacesHub, authorizeHandler, jsonSupport);
+        //PollingTransport 是 ChannelInboundHandlerAdapter 的子类
         xhrPollingTransport = new PollingTransport(decoder, authorizeHandler, clientsBox);
+        //WebSocketTransport 也是 ChannelInboundHandlerAdapter 的子类
         webSocketTransport = new WebSocketTransport(isSsl, authorizeHandler, configuration, scheduler, clientsBox);
 
         PacketListener packetListener = new PacketListener(ackManager, namespacesHub, xhrPollingTransport, scheduler);
 
-
+        //InPacketHandler 是 SimpleChannelInboundHandler的子类
         packetHandler = new InPacketHandler(packetListener, decoder, namespacesHub, configuration.getExceptionListener());
 
         try {
+            //EncoderHandler 是 ChannelOutboundHandlerAdapter 的子类
             encoderHandler = new EncoderHandler(configuration, encoder);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
-
+        //WrongUrlHandler 是 ChannelInboundHandlerAdapter 的子类
         wrongUrlHandler = new WrongUrlHandler();
     }
 
